@@ -30,6 +30,7 @@ func main() {
 		os.Exit(0)
 	}
 	collector.ExtractServiceTimes = cfg.ExtractServiceTimes
+	collector.ExtractMemPools = cfg.ExtractMemPools
 
 	headers := []string{}
 

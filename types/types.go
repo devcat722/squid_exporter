@@ -15,3 +15,12 @@ type Counter struct {
 
 /*Counters is a list of multiple squid counters */
 type Counters []Counter
+
+type MemInstance struct {
+	Key   string
+	KID   string
+	Pool  string
+	Value float64
+}
+
+type MemInstances []MemInstance

@@ -17,6 +17,7 @@ const (
 	defaultSquidHostname       = "localhost"
 	defaultSquidPort           = 3128
 	defaultExtractServiceTimes = true
+	defaultExtractMemPools     = true
 	defaultUseProxyHeader      = false
 )
 
@@ -30,6 +31,7 @@ const (
 	squidPasswordKey              = "SQUID_PASSWORD"
 	squidPidfile                  = "SQUID_PIDFILE"
 	squidExtractServiceTimes      = "SQUID_EXTRACTSERVICETIMES"
+	squidExtractMemPools          = "SQUID_EXTRACTMEMPOOLS"
 	squidUseProxyHeader           = "SQUID_USE_PROXY_HEADER"
 )
 
@@ -49,6 +51,7 @@ type Config struct {
 	MetricPath          string
 	Labels              Labels
 	ExtractServiceTimes bool
+	ExtractMemPools     bool
 
 	SquidHostname string
 	SquidPort     int
@@ -72,6 +75,9 @@ func NewConfig() *Config {
 
 	flag.BoolVar(&c.ExtractServiceTimes, "extractservicetimes",
 		loadEnvBoolVar(squidExtractServiceTimes, defaultExtractServiceTimes), "Extract service times metrics")
+
+	flag.BoolVar(&c.ExtractMemPools, "extractmemorypools",
+		loadEnvBoolVar(squidExtractMemPools, defaultExtractMemPools), "Extract memory pool metrics")
 
 	flag.Var(&c.Labels, "label", "Custom metrics to attach to metrics, use -label multiple times for each additional label")
 

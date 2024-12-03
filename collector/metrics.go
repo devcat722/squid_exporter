@@ -19,12 +19,15 @@ var (
 	counters            descMap
 	serviceTimes        descMap // ExtractServiceTimes decides if we want to extract service times
 	ExtractServiceTimes bool
+	ExtractMemPools     bool
 	infos               descMap
+	mems                descMap
 )
 
 /*Exporter entry point to squid exporter */
 type Exporter struct {
-	client SquidClient
+	client    SquidClient
+	memClient MemClient
 
 	hostname string
 	port     int
@@ -51,20 +54,30 @@ func New(c *CollectorConfig) *Exporter {
 
 	infos = generateSquidInfos(c.Labels.Keys)
 
+	if ExtractMemPools {
+		mems = generateSquidMems(c.Labels.Keys)
+	}
+
 	return &Exporter{
-		NewCacheObjectClient(&CacheObjectRequest{
+		client: NewCacheObjectClient(&CacheObjectRequest{
 			c.Hostname,
 			c.Port,
 			c.Login,
 			c.Password,
 			c.Headers,
 		}),
+		memClient: NewCacheMemoryClient(&CacheObjectRequest{
+			Hostname: c.Hostname,
+			Port:     c.Port,
+			Login:    c.Login,
+			Password: c.Password,
+			Headers:  c.Headers,
+		}),
 
-		c.Hostname,
-		c.Port,
-
-		c.Labels,
-		prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		hostname: c.Hostname,
+		port:     c.Port,
+		labels:   c.Labels,
+		up: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "up",
 			Help:      "Was the last query of squid successful?",
@@ -91,6 +104,12 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 		ch <- v
 	}
 
+	if ExtractMemPools {
+		for _, v := range mems {
+			ch <- v
+		}
+	}
+
 }
 
 /*Collect fetches metrics from squid manager and pushes them to promethus */
@@ -107,6 +126,19 @@ func (e *Exporter) Collect(c chan<- prometheus.Metric) {
 	} else {
 		e.up.With(prometheus.Labels{"host": e.hostname}).Set(0)
 		log.Println("Could not fetch counter metrics from squid instance: ", err)
+	}
+
+	if ExtractMemPools {
+		memInsts, err := e.memClient.GetMems()
+		log.Printf("insts: %v", memInsts)
+
+		if err == nil {
+			for i := range memInsts {
+				if d, ok := mems[memInsts[i].Key]; ok {
+					c <- prometheus.MustNewConstMetric(d, prometheus.CounterValue, memInsts[i].Value, memInsts[i].KID, memInsts[i].Pool)
+				}
+			}
+		}
 	}
 
 	if ExtractServiceTimes {
